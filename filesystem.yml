@@ -1,0 +1,38 @@
+
+- hosts : file
+  become: yes
+  vars:
+    output_path: "/home/osadmin/dctool/PATCH/filesystem"
+    filename: "report_{{ date }}.csv"
+  tasks:
+   - name: CSV - Generate output filename
+     set_fact: date="{{lookup('pipe','date +%Y%m%d')}}"
+     run_once: true
+     register: output
+   - name: get the output
+     debug:
+      var: output
+   - name: Ensure file exists (create if not present)
+     file:
+      path: "{{ output_path }}/{{ filename }}"
+      state: touch
+     delegate_to: localhost
+   - name: output of filesystem
+     shell: df -h | grep -vE 'cdrom|tmpfs' | sed s/%//g | awk '{ if($5 > 85) print$0;}'
+     register: output
+   - name: read the output
+     debug:
+      var: output.stdout_lines
+   - name: Get hostname
+     set_fact:
+      hostname: "{{ ansible_hostname }}"
+   - name: Format output as CSV
+     set_fact:
+      csv_content: "{{ hostname }},{{ output.stdout_lines | join('\n' + hostname + ',')}}"
+
+   - name: Append the data to the CSV file
+     lineinfile:
+      line: "{{ csv_content }}"
+      path: "{{ output_path }}/{{ filename }}"
+      insertafter: EOF
+     delegate_to: localhost
