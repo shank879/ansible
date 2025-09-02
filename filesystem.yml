@@ -1,5 +1,5 @@
 
-- hosts : file
+- hosts: file
   become: yes
   vars:
     output_path: "/home/osadmin/dctool/PATCH/filesystem"
